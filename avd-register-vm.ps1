@@ -7,8 +7,13 @@ $vmName = $env:COMPUTERNAME
 # Install the necessary module
 Install-Module -Name Az.DesktopVirtualization -Force -AllowClobber
 
-# Connect to Azure
+# Login using Managed Identity
 Connect-AzAccount -Identity
 
-# Register the VM with the host pool
-New-AzWvdSessionHost -ResourceGroupName $resourceGroupName -HostPoolName $hostPoolName -Name $vmName -SessionHostName $vmName
+# Generate a registration key for the host pool
+$registrationInfo = New-AzWvdRegistrationInfo -ResourceGroupName $resourceGroupName -HostPoolName $hostPoolName -ExpirationHours 24
+
+# Register the VM to the host pool
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Azure/RDS-Templates/master/wvd-templates/host-pool-registration.ps1" -OutFile "C:\host-pool-registration.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\host-pool-registration.ps1" -RegistrationToken $registrationInfo.RegistrationToken
+
