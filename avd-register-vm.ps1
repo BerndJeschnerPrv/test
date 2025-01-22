@@ -1,19 +1,17 @@
-#$tenantId = "c35be448-8739-4400-95cc-6118b202831d"
-#$subscriptionId = "48d06275-1662-474e-a930-81e27f4c773a"
-$resourceGroupName = "RG-JS-AVDdemo4"
-$hostPoolName = "vdpool-avd-001"
-$vmName = $env:COMPUTERNAME
+# Install the Intune Management Extension
+Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=874338" -OutFile "IntuneWinAppUtil.exe"
+Start-Process -FilePath "IntuneWinAppUtil.exe" -ArgumentList "/quiet" -Wait
 
-# Install the necessary module
-Install-Module -Name Az.DesktopVirtualization -Force -AllowClobber
+# Enroll the device in Intune
+$EnrollmentUri = "https://enrollment.manage.microsoft.com/EnrollmentServer/Discovery.svc"
+$AADTenantId = "c35be448-8739-4400-95cc-6118b202831d"  # Replace with your Azure AD tenant ID
+$AADClientId = "73a55238-4241-43a2-bd01-ba1a81c374a3"  # Replace with your Azure AD client ID
+$AADClientSecret = "3iF8Q~ph1jpf8Vb.aeF.wOW8~jn0hTKp6YFtRb2t"  # Replace with your Azure AD client secret
 
-# Login using Managed Identity
-Connect-AzAccount -Identity
+$body = @{
+    "TenantId" = $AADTenantId
+    "ClientId" = $AADClientId
+    "ClientSecret" = $AADClientSecret
+}
 
-# Generate a registration key for the host pool
-$registrationInfo = New-AzWvdRegistrationInfo -ResourceGroupName $resourceGroupName -HostPoolName $hostPoolName -ExpirationHours 24
-
-# Register the VM to the host pool
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Azure/RDS-Templates/master/wvd-templates/host-pool-registration.ps1" -OutFile "C:\host-pool-registration.ps1"
-powershell -ExecutionPolicy Bypass -File "C:\host-pool-registration.ps1" -RegistrationToken $registrationInfo.RegistrationToken
-
+Invoke-RestMethod -Uri $EnrollmentUri -Method Post -Body (ConvertTo-Json $body) -ContentType "application/json"
